@@ -138,10 +138,10 @@ def add_features(mention, sentence):
             if word2.lemma.isalpha() and re.search('^VB[A-Z]*$', word2.pos) \
                     and word2.lemma != 'be':
                 # Ignoring "be" comes from pharm (Emily)
-                p = sentence.get_word_dep_path(word.in_sent_idx,
-                                               word2.in_sent_idx)
-                if len(p) < minl:
-                    minl = len(p)
+                (p, l) = sentence.get_word_dep_path(
+                    word.in_sent_idx, word2.in_sent_idx)
+                if l < minl:
+                    minl = l
                     minp = p
                     minw = word2.lemma
     if minw:
@@ -153,7 +153,7 @@ def add_features(mention, sentence):
     for word in mention.words:
         for word2 in sentence.words:
             if word2.lemma in KEYWORDS:
-                p = sentence.get_word_dep_path(
+                (p, l) = sentence.get_word_dep_path(
                     word.in_sent_idx, word2.in_sent_idx)
                 kw = word2.lemma
                 if word2.lemma in KNOCK_KWS:
@@ -174,8 +174,8 @@ def add_features(mention, sentence):
                 #     kw = "_GENE"
                 # elif word2.lemma in COEXPRESSION_KWS:
                 #    ke = "_COEXPRESSION"
-                if len(p) < minl:
-                    minl = len(p)
+                if l < minl:
+                    minl = l
                     minp = p
                     minw = kw
                 if len(p) < 100:
@@ -193,10 +193,10 @@ def add_features(mention, sentence):
         for word2 in sentence.words:
             if word2.in_sent_idx not in mention.wordidxs and \
                     word2.word in merged_genes_dict:
-                p = sentence.get_word_dep_path(
+                (p, l) = sentence.get_word_dep_path(
                     word.in_sent_idx, word2.in_sent_idx)
-                if len(p) < minl:
-                    minl = len(p)
+                if l < minl:
+                    minl = l
                     minp = p
                     minw = word2.lemma
     if minw:
@@ -659,27 +659,30 @@ if __name__ == "__main__":
     with fileinput.input() as input_files:
         for line in input_files:
             # Parse the TSV line
-            line_dict = get_dict_from_TSVline(
-                line, ["doc_id", "sent_id", "wordidxs", "words", "poses",
-                       "ners", "lemmas", "dep_paths", "dep_parents",
-                       "bounding_boxes"],
-                [no_op, int, lambda x: TSVstring2list(x, int), TSVstring2list,
-                    TSVstring2list, TSVstring2list, TSVstring2list,
-                    TSVstring2list, lambda x: TSVstring2list(x, int),
-                    TSVstring2list])
-            # Create the sentence object
-            sentence = Sentence(
-                line_dict["doc_id"], line_dict["sent_id"],
-                line_dict["wordidxs"], line_dict["words"], line_dict["poses"],
-                line_dict["ners"], line_dict["lemmas"], line_dict["dep_paths"],
-                line_dict["dep_parents"], line_dict["bounding_boxes"])
-            # Skip weird sentences
-            if sentence.is_weird():
-                continue
-            # Get list of mentions candidates in this sentence
-            mentions = extract(sentence)
-            # Supervise them
-            new_mentions = supervise(mentions, sentence)
-            # Print!
-            for mention in new_mentions:
-                print(mention.tsv_dump())
+            try:
+                line_dict = get_dict_from_TSVline(
+                    line, ["doc_id", "sent_id", "wordidxs", "words", "poses",
+                           "ners", "lemmas", "dep_paths", "dep_parents",
+                           "bounding_boxes"],
+                    [no_op, int, lambda x: TSVstring2list(x, int), TSVstring2list,
+                        TSVstring2list, TSVstring2list, TSVstring2list,
+                        TSVstring2list, lambda x: TSVstring2list(x, int),
+                        TSVstring2list])
+                # Create the sentence object
+                sentence = Sentence(
+                    line_dict["doc_id"], line_dict["sent_id"],
+                    line_dict["wordidxs"], line_dict["words"], line_dict["poses"],
+                    line_dict["ners"], line_dict["lemmas"], line_dict["dep_paths"],
+                    line_dict["dep_parents"], line_dict["bounding_boxes"])
+                # Skip weird sentences
+                if sentence.is_weird():
+                    continue
+                # Get list of mentions candidates in this sentence
+                mentions = extract(sentence)
+                # Supervise them
+                new_mentions = supervise(mentions, sentence)
+                # Print!
+                for mention in new_mentions:
+                    print(mention.tsv_dump())
+            except:
+                pass

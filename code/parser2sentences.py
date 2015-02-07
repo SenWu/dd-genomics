@@ -109,7 +109,7 @@ def process_files(proc_id, input_files, input_dir, output_dir, mode):
                         lemmas.append(lemma)
                         dep_paths.append(dep_path)
                         # Now "-1" means root and the rest correspond to array indices
-                        dep_parents.append(int(dep_parent) - 1) 
+                        dep_parents.append(int(dep_parent)) 
                         bounding_boxes.append(bounding_box)
                         # Read the next line
                         curr_line = curr_file.readline().strip()

@@ -117,81 +117,83 @@ if __name__ == "__main__":
     with fileinput.input() as input_files:
         for line in input_files:
             # Parse the TSV line
-            line_dict = get_dict_from_TSVline(
-                line,
-                ["doc_id", "sent_ids", "wordidxss", "wordss", "posess", 
-                    "nerss", "lemmass", "dep_pathss", "dep_parentss",
-                    "bounding_boxess"],
-                [no_op, lambda x: TSVstring2list(x, int), 
-                    lambda x: TSVstring2list(x,sep='!~!'), 
-                    lambda x: TSVstring2list(x,sep='!~!'), 
-                    lambda x: TSVstring2list(x,sep='!~!'),
-                    lambda x: TSVstring2list(x,sep='!~!'),
-                    lambda x: TSVstring2list(x,sep='!~!'), 
-                    lambda x: TSVstring2list(x,sep='!~!'),
-                    lambda x: TSVstring2list(x,sep='!~!'),
-                    lambda x: TSVstring2list(x,sep='!~!')])
-            # Acronyms defined in the document
-            acronyms = dict()
-            for idx in range(len(line_dict["sent_ids"])):
-                wordidxs = TSVstring2list(line_dict["wordidxss"][idx], int)
-                words = TSVstring2list(line_dict["wordss"][idx])
-                poses = TSVstring2list(line_dict["posess"][idx])
-                ners = TSVstring2list(line_dict["nerss"][idx])
-                lemmas = TSVstring2list(line_dict["lemmass"][idx])
-                dep_paths = TSVstring2list(line_dict["dep_pathss"][idx])
-                dep_parents = TSVstring2list(line_dict["dep_parentss"][idx],
-                        int)
-                bounding_boxes = TSVstring2list(line_dict["bounding_boxess"][idx])
-                # Create the Sentence object
-                sentence = Sentence(
-                    line_dict["doc_id"], line_dict["sent_ids"][idx], wordidxs,
-                    words, poses, ners, lemmas, dep_paths, dep_parents,
-                    bounding_boxes)
-                # Extract the acronyms from the sentence
-                sen_acronyms = extract(sentence)
-                for acronym in sen_acronyms:
-                    if acronym["acronym"] not in acronyms:
-                        acronyms[acronym["acronym"]] = set()
-                    acronyms[acronym["acronym"]].add(acronym["definition"])
-            # Classify the acronyms
-            for acronym in acronyms:
-                contains_kw = False
-                is_correct = None
-                for definition in acronyms[acronym]:
-                    # If the definition is in the gene dictionary, supervise as
-                    # correct
-                    if definition in merged_genes_dict:
-                        is_correct = True
-                        break
-                    else:
-                        # Check if the definition contains some keywords that
-                        # make us suspect that it is probably a gene/protein.
-                        # This list is incomplete, and it would be good to add
-                        # to it.
-                        if contains_kw:
-                            continue
-                        for word in definition.split():
-                            if word.endswith("ase") and len(word) > 5:
+            try:
+                line_dict = get_dict_from_TSVline(
+                    line,
+                    ["doc_id", "sent_ids", "wordidxss", "wordss", "posess", 
+                        "nerss", "lemmass", "dep_pathss", "dep_parentss",
+                        "bounding_boxess"],
+                    [no_op, lambda x: TSVstring2list(x, int), 
+                        lambda x: TSVstring2list(x,sep='!~!'), 
+                        lambda x: TSVstring2list(x,sep='!~!'), 
+                        lambda x: TSVstring2list(x,sep='!~!'),
+                        lambda x: TSVstring2list(x,sep='!~!'),
+                        lambda x: TSVstring2list(x,sep='!~!'), 
+                        lambda x: TSVstring2list(x,sep='!~!'),
+                        lambda x: TSVstring2list(x,sep='!~!'),
+                        lambda x: TSVstring2list(x,sep='!~!')])
+                # Acronyms defined in the document
+                acronyms = dict()
+                for idx in range(len(line_dict["sent_ids"])):
+                    wordidxs = TSVstring2list(line_dict["wordidxss"][idx], int)
+                    words = TSVstring2list(line_dict["wordss"][idx])
+                    poses = TSVstring2list(line_dict["posess"][idx])
+                    ners = TSVstring2list(line_dict["nerss"][idx])
+                    lemmas = TSVstring2list(line_dict["lemmass"][idx])
+                    dep_paths = TSVstring2list(line_dict["dep_pathss"][idx])
+                    dep_parents = TSVstring2list(line_dict["dep_parentss"][idx],
+                            int)
+                    bounding_boxes = TSVstring2list(line_dict["bounding_boxess"][idx])
+                    # Create the Sentence object
+                    sentence = Sentence(
+                        line_dict["doc_id"], line_dict["sent_ids"][idx], wordidxs,
+                        words, poses, ners, lemmas, dep_paths, dep_parents,
+                        bounding_boxes)
+                    # Extract the acronyms from the sentence
+                    sen_acronyms = extract(sentence)
+                    for acronym in sen_acronyms:
+                        if acronym["acronym"] not in acronyms:
+                            acronyms[acronym["acronym"]] = set()
+                        acronyms[acronym["acronym"]].add(acronym["definition"])
+                # Classify the acronyms
+                for acronym in acronyms:
+                    contains_kw = False
+                    is_correct = None
+                    for definition in acronyms[acronym]:
+                        # If the definition is in the gene dictionary, supervise as
+                        # correct
+                        if definition in merged_genes_dict:
+                            is_correct = True
+                            break
+                        else:
+                            # Check if the definition contains some keywords that
+                            # make us suspect that it is probably a gene/protein.
+                            # This list is incomplete, and it would be good to add
+                            # to it.
+                            if contains_kw:
+                                continue
+                            for word in definition.split():
+                                if word.endswith("ase") and len(word) > 5:
+                                    contains_kw = True
+                                    break
+                            if " gene" in definition or \
+                                    "protein" in definition or \
+                                    "factor" in definition or \
+                                    "ligand" in definition or \
+                                    "enzyme" in definition or \
+                                    "receptor" in definition or \
+                                    "pseudogene" in definition:
                                 contains_kw = True
-                                break
-                        if " gene" in definition or \
-                                "protein" in definition or \
-                                "factor" in definition or \
-                                "ligand" in definition or \
-                                "enzyme" in definition or \
-                                "receptor" in definition or \
-                                "pseudogene" in definition:
-                            contains_kw = True
-                # If no significant keyword in any definition, supervise as not
-                # correct
-                if not contains_kw and not is_correct:
-                    is_correct = False
-                is_correct_str = "\\N"
-                if is_correct is not None:
-                    is_correct_str = is_correct.__repr__()
-                print("\t".join(
-                    (line_dict["doc_id"], acronym,
-                    list2TSVarray(list(acronyms[acronym]), quote=True),
-                    is_correct_str)))
-
+                    # If no significant keyword in any definition, supervise as not
+                    # correct
+                    if not contains_kw and not is_correct:
+                        is_correct = False
+                    is_correct_str = "\\N"
+                    if is_correct is not None:
+                        is_correct_str = is_correct.__repr__()
+                    print("\t".join(
+                        (line_dict["doc_id"], acronym,
+                        list2TSVarray(list(acronyms[acronym]), quote=True),
+                        is_correct_str)))
+            except:
+                pass

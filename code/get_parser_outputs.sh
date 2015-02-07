@@ -21,10 +21,10 @@ mkdir -p $2
 
 for article_filename in `find $1 -maxdepth 1 -type d`; do
 	# -s : file exists and has size larger than 0
-	if [ -s ${article_filename}/input.text ]; then
+	if [ -s ${article_filename}/final.txt.nlp ]; then
 		NAME=`basename ${article_filename}`
 		if [ ! -r $2/${NAME} ]; then
-			ln -s `readlink -f ${article_filename}/input.text` $2/${NAME}
+			ln -s `readlink -f ${article_filename}/final.txt.nlp` $2/${NAME}
 		fi
 	fi
 done

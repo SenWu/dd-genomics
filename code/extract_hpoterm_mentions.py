@@ -142,14 +142,14 @@ def add_features(mention, sentence):
     for word in mention.words:
         for word2 in sentence.words:
             if word2.lemma in KEYWORDS:
-                p = sentence.get_word_dep_path(word.in_sent_idx,
-                                               word2.in_sent_idx)
+                (p, l) = sentence.get_word_dep_path(
+                    word.in_sent_idx, word2.in_sent_idx)
                 kw = word2.lemma
                 if word2.lemma in PATIENT_KWS:
                     kw = "_HUMAN"
                 mention.add_feature("KEYWORD_[" + kw + "]" + p)
-                if len(p) < minl:
-                    minl = len(p)
+                if l < minl:
+                    minl = l
                     minp = p
                     minw = kw
     # Special feature for the keyword on the shortest dependency path
@@ -164,10 +164,10 @@ def add_features(mention, sentence):
         for word2 in sentence.words:
             if word2.word.isalpha() and re.search('^VB[A-Z]*$', word2.pos) \
                     and word2.lemma != 'be':
-                p = sentence.get_word_dep_path(word.in_sent_idx,
-                                               word2.in_sent_idx)
-                if len(p) < minl:
-                    minl = len(p)
+                (p, l) = sentence.get_word_dep_path(
+                    word.in_sent_idx, word2.in_sent_idx)
+                if l < minl:
+                    minl = l
                     minp = p
                     minw = word2.lemma
         if minw:
@@ -279,27 +279,30 @@ if __name__ == "__main__":
     with fileinput.input() as input_files:
         for line in input_files:
             # Parse the TSV line
-            line_dict = get_dict_from_TSVline(
-                line,
-                ["doc_id", "sent_id", "wordidxs", "words", "poses", "ners",
-                    "lemmas", "dep_paths", "dep_parents", "bounding_boxes"],
-                [no_op, int, lambda x: TSVstring2list(x, int), TSVstring2list,
-                    TSVstring2list, TSVstring2list, TSVstring2list,
-                    TSVstring2list, lambda x: TSVstring2list(x, int),
-                    TSVstring2list])
-            # Create the Sentence object
-            sentence = Sentence(
-                line_dict["doc_id"], line_dict["sent_id"],
-                line_dict["wordidxs"], line_dict["words"], line_dict["poses"],
-                line_dict["ners"], line_dict["lemmas"], line_dict["dep_paths"],
-                line_dict["dep_parents"], line_dict["bounding_boxes"])
-            # Skip weird sentences
-            if sentence.is_weird():
-                continue
-            # Extract mention candidates
-            mentions = extract(sentence)
-            # Supervise
-            new_mentions = supervise(mentions, sentence)
-            # Print!
-            for mention in new_mentions:
-                print(mention.tsv_dump())
+            try:
+                line_dict = get_dict_from_TSVline(
+                    line,
+                    ["doc_id", "sent_id", "wordidxs", "words", "poses", "ners",
+                        "lemmas", "dep_paths", "dep_parents", "bounding_boxes"],
+                    [no_op, int, lambda x: TSVstring2list(x, int), TSVstring2list,
+                        TSVstring2list, TSVstring2list, TSVstring2list,
+                        TSVstring2list, lambda x: TSVstring2list(x, int),
+                        TSVstring2list])
+                # Create the Sentence object
+                sentence = Sentence(
+                    line_dict["doc_id"], line_dict["sent_id"],
+                    line_dict["wordidxs"], line_dict["words"], line_dict["poses"],
+                    line_dict["ners"], line_dict["lemmas"], line_dict["dep_paths"],
+                    line_dict["dep_parents"], line_dict["bounding_boxes"])
+                # Skip weird sentences
+                if sentence.is_weird():
+                    continue
+                # Extract mention candidates
+                mentions = extract(sentence)
+                # Supervise
+                new_mentions = supervise(mentions, sentence)
+                # Print!
+                for mention in new_mentions:
+                    print(mention.tsv_dump())
+            except:
+                pass
